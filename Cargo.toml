@@ -12,7 +12,7 @@ categories = ["network-programming"]
 [dependencies]
 anyhow = "1.0.104"
 askama = "0.16.0"
-axum = { version = "0.8.8", features = ["macros"] }
+axum = { version = "0.8.9", features = ["macros"] }
 log = "0.4.32"
 pretty_env_logger = "0.5.0"
 serde = { version = "1.0.229", features = ["derive"] }
