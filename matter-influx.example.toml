@@ -1,2 +1,11 @@
 # The address on which the server should listen.
-webserver_address = "0.0.0.0:3009"
+webserver_address = "[::]:3009"
+
+# The address on which the Matter Controller should listen.
+matter_controller_address = "[::]:3010"
+
+# The Fabric ID to use for the Matter Controller.
+matter_fabric_id = 2000
+
+# The directory in which to store Matter controller state.
+matter_data_path = "matter-influx/matter/"

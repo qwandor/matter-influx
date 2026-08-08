@@ -12,6 +12,15 @@ pub struct Config {
     /// The address on which the webserver should listen.
     #[serde(default = "default_webserver_address")]
     pub webserver_address: SocketAddr,
+    /// The address on which the Matter Controller should listen.
+    #[serde(default = "default_matter_controller_address")]
+    pub matter_controller_address: SocketAddr,
+    /// The Fabric ID to use for the Matter Controller.
+    #[serde(default = "default_matter_fabric_id")]
+    pub matter_fabric_id: u64,
+    /// The directory in which to store Matter controller state.
+    #[serde(default = "default_matter_data_path")]
+    pub matter_data_path: String,
 }
 
 impl Config {
