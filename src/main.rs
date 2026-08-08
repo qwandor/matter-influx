@@ -4,12 +4,11 @@ mod errors;
 
 use crate::{config::Config, controllers::index};
 use axum::{Router, routing::get};
-use eyre::Report;
 use log::info;
 use tokio::net::TcpListener;
 
 #[tokio::main]
-async fn main() -> Result<(), Report> {
+async fn main() -> Result<(), anyhow::Error> {
     pretty_env_logger::init();
 
     let config = Config::from_file()?;

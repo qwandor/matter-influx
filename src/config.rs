@@ -1,4 +1,4 @@
-use eyre::{Context, Report, bail};
+use anyhow::{Context, bail};
 use serde::Deserialize;
 use std::{fs::read_to_string, net::SocketAddr, path::Path};
 
@@ -15,7 +15,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_file() -> Result<Self, Report> {
+    pub fn from_file() -> Result<Self, anyhow::Error> {
         for filename in &CONFIG_FILENAMES {
             if Path::new(filename).is_file() {
                 return Config::read(filename);
@@ -27,15 +27,27 @@ impl Config {
         );
     }
 
-    fn read(filename: &str) -> Result<Config, Report> {
+    fn read(filename: &str) -> Result<Config, anyhow::Error> {
         let config_file =
-            read_to_string(filename).wrap_err_with(|| format!("Reading {filename}"))?;
+            read_to_string(filename).with_context(|| format!("Reading {filename}"))?;
         Ok(toml::from_str(&config_file)?)
     }
 }
 
 fn default_webserver_address() -> SocketAddr {
-    "0.0.0.0:3009".parse().unwrap()
+    "[::]:3009".parse().unwrap()
+}
+
+fn default_matter_controller_address() -> SocketAddr {
+    "[::]:3010".parse().unwrap()
+}
+
+fn default_matter_fabric_id() -> u64 {
+    2000
+}
+
+fn default_matter_data_path() -> String {
+    "matter-influx/matter/".to_owned()
 }
 
 #[cfg(test)]
