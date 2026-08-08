@@ -2,5 +2,25 @@
 name = "matter-influx"
 version = "0.1.0"
 edition = "2024"
+authors = ["Andrew Walbran <qwandor@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "Matter controller to log values to InfluxDB."
+repository = "https://github.com/qwandor/matter-influx/"
+keywords = ["matter", "influxdb"]
+categories = ["network-programming"]
 
 [dependencies]
+askama = "0.16.0"
+axum = { version = "0.8.8", features = ["macros"] }
+eyre = "0.6.12"
+log = "0.4.32"
+pretty_env_logger = "0.5.0"
+serde = { version = "1.0.229", features = ["derive"] }
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
+toml = "1.1.2"
+
+[package.metadata.deb]
+section = "net"
+
+# This section needs to be here even if it's empty, for the systemd integration to work.
+[package.metadata.deb.systemd-units]
