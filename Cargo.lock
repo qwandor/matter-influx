@@ -829,7 +829,7 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 [[package]]
 name = "matc"
 version = "0.1.3"
-source = "git+https://github.com/tom-code/rust-matc#78f27142c16ed42ba290c72ac2349d17d3927522"
+source = "git+https://github.com/tom-code/rust-matc#16a54d2baeb864311cf8c5f40fcfc82b553a8f2e"
 dependencies = [
  "aes",
  "anyhow",
@@ -980,9 +980,9 @@ dependencies = [
 
 [[package]]
 name = "portable-atomic"
-version = "1.14.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d20d5497ef88037a52ff98267d066e7f11fcc5e99bbfbd58a42336193aacec3"
+checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
 
 [[package]]
 name = "portable-atomic-util"
