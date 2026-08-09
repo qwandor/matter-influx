@@ -11,7 +11,17 @@
 
     <ul>
       {% for device in devices %}
-      <li>{{ device.node_id}}: {{ device.name }} ({{ device.address }})</li>
+      <li>
+        {{ device.device.node_id}}: {{ device.device.name }} ({{
+        device.device.address }})
+        <ul>
+          {% if let Some(error) = device.error %}
+          <li class="error">{{ error }}</li>
+          {% endif %} {% for info in device.info %}
+          <li>{{ info }}</li>
+          {% endfor %}
+        </ul>
+      </li>
       {% endfor %}
     </ul>
 
