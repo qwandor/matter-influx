@@ -2,61 +2,52 @@ use crate::{AppState, errors::AppError};
 use askama::Template;
 use axum::{extract::State, response::Html};
 use futures::future::join_all;
-use matc::{
-    clusters::{
-        codec::{
-            concentration_measurement, on_off, temperature_measurement, water_content_measurement,
-        },
-        defs::{
-            CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-            CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-            CLUSTER_RADON_CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
-            CLUSTER_RADON_CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
-        },
-    },
-    controller::Connection,
-    devman::{Device, DeviceManager},
-    tlv::TlvItemValue,
-};
+use matter_clusters::r#gen::{on_off, relative_humidity_measurement, temperature_measurement};
+use matter_controller::{MatterController, NodeInfo, ReadPath, Value};
 use std::sync::Arc;
 
-pub async fn index(State(state): State<Arc<AppState>>) -> Result<Html<String>, AppError> {
-    let devices = state.device_manager.list_devices()?;
+const CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT: u32 = 0x042a;
+const CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT: u32 = 0x040d;
+const CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE: u32 = 0x0000;
+const CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT: u32 = 0x0008;
 
-    let devices = join_all(
-        devices
+pub async fn index(State(state): State<Arc<AppState>>) -> Result<Html<String>, AppError> {
+    let nodes = state.matter_controller.nodes().await?;
+
+    let nodes = join_all(
+        nodes
             .into_iter()
-            .map(|device| DeviceInfo::for_device(device, &state.device_manager)),
+            .map(|node| DeviceInfo::for_node(node, &state.matter_controller)),
     )
     .await;
 
-    let template = IndexTemplate { devices };
+    let template = IndexTemplate { nodes };
     Ok(Html(template.render()?))
 }
 
 #[derive(Template)]
 #[template(path = "index.html")]
 struct IndexTemplate {
-    devices: Vec<DeviceInfo>,
+    nodes: Vec<DeviceInfo>,
 }
 
 #[derive(Clone, Debug)]
 struct DeviceInfo {
-    device: Device,
+    node: NodeInfo,
     error: Option<String>,
     info: Vec<String>,
 }
 
 impl DeviceInfo {
-    async fn for_device(device: Device, device_manager: &DeviceManager) -> Self {
-        match get_device_info(device.node_id, device_manager).await {
+    async fn for_node(node: NodeInfo, matter_controller: &MatterController) -> Self {
+        match get_device_info(node.node_id, matter_controller).await {
             Ok(info) => Self {
-                device,
+                node,
                 error: None,
                 info,
             },
             Err(e) => Self {
-                device,
+                node,
                 error: Some(e.to_string()),
                 info: Vec::new(),
             },
@@ -66,72 +57,87 @@ impl DeviceInfo {
 
 async fn get_device_info(
     node_id: u64,
-    device_manager: &DeviceManager,
+    matter_controller: &MatterController,
 ) -> Result<Vec<String>, anyhow::Error> {
-    let connection = device_manager.connect(node_id).await?;
+    let node = matter_controller.node(node_id);
     let mut info = Vec::new();
-    let on = on_off::read_on_off(&connection, 1).await?;
-    info.push(if on { "On" } else { "Off" }.to_owned());
-    if let Some(temperature) = temperature_measurement::read_measured_value(&connection, 1).await? {
+    let on = node
+        .read(&[ReadPath::cluster(1, on_off::CLUSTER_ID)])
+        .await?;
+    info.push(format!("{on:?}"));
+    if let &[(_, Value::Bool(on))] = node
+        .read(&[ReadPath::concrete(
+            1,
+            on_off::CLUSTER_ID,
+            on_off::attribute_id::ON_OFF,
+        )])
+        .await?
+        .as_slice()
+    {
+        info.push(if on { "On" } else { "Off" }.to_owned());
+    }
+
+    if let &[(_, Value::Int(temperature))] = node
+        .read(&[ReadPath::concrete(
+            1,
+            temperature_measurement::CLUSTER_ID,
+            temperature_measurement::attribute_id::MEASURED_VALUE,
+        )])
+        .await?
+        .as_slice()
+    {
         info.push(format!(
             "Temperature: {}.{} °C",
             temperature / 100,
             temperature % 100
         ));
     }
-    if let Some(humidity) = water_content_measurement::read_measured_value(&connection, 1).await? {
+    if let &[(_, Value::Uint(humidity))] = node
+        .read(&[ReadPath::concrete(
+            1,
+            relative_humidity_measurement::CLUSTER_ID,
+            relative_humidity_measurement::attribute_id::MEASURED_VALUE,
+        )])
+        .await?
+        .as_slice()
+    {
         info.push(format!("Humidity: {}.{} %", humidity / 100, humidity % 100));
     }
-    if let Some(value) = read_attribute_value(
-        &connection,
-        1,
-        CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-        CLUSTER_RADON_CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
-        concentration_measurement::decode_measured_value,
-    )
-    .await?
-        && let unit = read_attribute_value(
-            &connection,
-            1,
-            CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-            CLUSTER_RADON_CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
-            concentration_measurement::decode_measurement_unit,
-        )
+    if let [(_, Value::Float(value)), (_, Value::Bytes(unit))] = node
+        .read(&[
+            ReadPath::concrete(
+                1,
+                CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
+                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
+            ),
+            ReadPath::concrete(
+                1,
+                CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
+                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
+            ),
+        ])
         .await?
+        .as_slice()
     {
         info.push(format!("PM2.5: {} {:?}", value, unit));
     }
-    if let Some(value) = read_attribute_value(
-        &connection,
-        1,
-        CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-        CLUSTER_RADON_CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
-        concentration_measurement::decode_measured_value,
-    )
-    .await?
-        && let unit = read_attribute_value(
-            &connection,
-            1,
-            CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-            CLUSTER_RADON_CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
-            concentration_measurement::decode_measurement_unit,
-        )
+    if let [(_, Value::Float(value)), (_, Value::Bytes(unit))] = node
+        .read(&[
+            ReadPath::concrete(
+                1,
+                CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
+                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
+            ),
+            ReadPath::concrete(
+                1,
+                CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
+                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
+            ),
+        ])
         .await?
+        .as_slice()
     {
         info.push(format!("CO2: {} {:?}", value, unit));
     }
     Ok(info)
-}
-
-async fn read_attribute_value<T>(
-    connection: &Connection,
-    endpoint: u16,
-    cluster: u32,
-    attribute: u32,
-    decode: fn(&TlvItemValue) -> Result<T, anyhow::Error>,
-) -> Result<T, anyhow::Error> {
-    let value = connection
-        .read_request2(endpoint, cluster, attribute)
-        .await?;
-    decode(&value)
 }

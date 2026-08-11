@@ -15,7 +15,8 @@ askama = "0.16.0"
 axum = { version = "0.8.9", features = ["macros"] }
 futures = "0.3.33"
 log = "0.4.32"
-matc = { git = "https://github.com/tom-code/rust-matc" }
+matter-clusters = "0.3.0"
+matter-controller = "0.5.0"
 pretty_env_logger = "0.5.0"
 serde = { version = "1.0.229", features = ["derive"] }
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }

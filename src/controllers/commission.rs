@@ -1,6 +1,7 @@
 use crate::{AppState, errors::AppError};
 use askama::Template;
 use axum::{Form, extract::State, response::Html};
+use matter_controller::NodeInfo;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -19,20 +20,17 @@ pub async fn submit(
     if name.is_empty() {
         return render_error("Name must not be empty".to_owned(), form);
     }
-    if pairing_code.len() != 11 {
-        return render_error("Invalid pairing code".to_owned(), form);
-    }
 
-    let node_id = state.next_node_id()?;
-    if let Err(e) = state
-        .device_manager
-        .commission_with_code(&pairing_code, node_id, &form.name)
+    match state
+        .matter_controller
+        .commission(&pairing_code, Some(form.name.to_owned()))
         .await
     {
-        render_error(format!("Failed to commission: {}", e), form)
-    } else {
-        let template = SuccessTemplate { name: form.name };
-        Ok(Html(template.render()?))
+        Ok(node_info) => {
+            let template = SuccessTemplate { node_info };
+            Ok(Html(template.render()?))
+        }
+        Err(e) => render_error(format!("Failed to commission: {}", e), form),
     }
 }
 
@@ -60,15 +58,5 @@ struct CommissionTemplate {
 #[derive(Template)]
 #[template(path = "commission_success.html")]
 struct SuccessTemplate {
-    name: String,
-}
-
-#[cfg(test)]
-mod tests {
-    use matc::onboarding::decode_manual_pairing_code;
-
-    #[test]
-    fn decode() {
-        decode_manual_pairing_code("00170936664").unwrap();
-    }
+    node_info: NodeInfo,
 }

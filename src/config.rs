@@ -1,6 +1,10 @@
 use anyhow::{Context, bail};
 use serde::Deserialize;
-use std::{fs::read_to_string, net::SocketAddr, path::Path};
+use std::{
+    fs::read_to_string,
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 
 /// Paths at which to look for the config file. They are searched in order, and the first one that
 /// exists is used.
@@ -12,15 +16,18 @@ pub struct Config {
     /// The address on which the webserver should listen.
     #[serde(default = "default_webserver_address")]
     pub webserver_address: SocketAddr,
-    /// The address on which the Matter Controller should listen.
-    #[serde(default = "default_matter_controller_address")]
-    pub matter_controller_address: SocketAddr,
     /// The Fabric ID to use for the Matter Controller.
     #[serde(default = "default_matter_fabric_id")]
     pub matter_fabric_id: u64,
     /// The directory in which to store Matter controller state.
     #[serde(default = "default_matter_data_path")]
-    pub matter_data_path: String,
+    pub matter_data_path: PathBuf,
+    /// The directory of PAA root certificates.
+    #[serde(default = "default_paa_dir")]
+    pub paa_dir: PathBuf,
+    /// The directory of CD certificates.
+    #[serde(default = "default_cd_dir")]
+    pub cd_dir: PathBuf,
 }
 
 impl Config {
@@ -47,16 +54,20 @@ fn default_webserver_address() -> SocketAddr {
     "[::]:3009".parse().unwrap()
 }
 
-fn default_matter_controller_address() -> SocketAddr {
-    "[::]:3010".parse().unwrap()
-}
-
 fn default_matter_fabric_id() -> u64 {
     2000
 }
 
-fn default_matter_data_path() -> String {
-    "matter-influx/matter/".to_owned()
+fn default_matter_data_path() -> PathBuf {
+    "matter-influx/controller-state.bin".into()
+}
+
+fn default_paa_dir() -> PathBuf {
+    "/usr/share/matter-influx/paa-root-certs".into()
+}
+
+fn default_cd_dir() -> PathBuf {
+    "/usr/share/matter-influx/cd-certs".into()
 }
 
 #[cfg(test)]

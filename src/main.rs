@@ -11,12 +11,12 @@ use axum::{
     routing::{get, post},
 };
 use log::info;
-use matc::devman::{DeviceManager, ManagerConfig};
-use std::{path::Path, sync::Arc};
+use matter_controller::{AttestationTrust, FabricConfig, FileStore, MatterController, MatterTime};
+use std::sync::Arc;
 use tokio::net::TcpListener;
 
-const CONTROLLER_ID: u64 = 1;
-const MINIMUM_NODE_ID: u64 = 2;
+const RCAC_ID: u64 = 42;
+const CONTROLLER_NODE_ID: u64 = 1;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -24,18 +24,27 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let config = Config::from_file()?;
 
-    let matter_config = ManagerConfig {
-        fabric_id: config.matter_fabric_id,
-        controller_id: CONTROLLER_ID,
-        local_address: config.matter_controller_address.to_string(),
-    };
-    let device_manager = if Path::new(&config.matter_data_path).exists() {
-        DeviceManager::load(&config.matter_data_path).await
-    } else {
-        DeviceManager::create(&config.matter_data_path, matter_config).await
-    }?;
+    let data_exists = config.matter_data_path.exists();
+    let matter_controller =
+        MatterController::builder(Arc::new(FileStore::new(&config.matter_data_path)))
+            .attestation_trust(AttestationTrust::from_dirs(
+                &config.paa_dir,
+                &config.cd_dir,
+            )?)
+            .build()
+            .await?;
+    if !data_exists {
+        matter_controller
+            .create_fabric(FabricConfig::new(
+                config.matter_fabric_id,
+                RCAC_ID,
+                CONTROLLER_NODE_ID,
+                (MatterTime::NO_EXPIRY, MatterTime::NO_EXPIRY),
+            ))
+            .await?;
+    }
 
-    let state = AppState { device_manager };
+    let state = AppState { matter_controller };
 
     let app = Router::new()
         .route("/", get(index::index))
@@ -50,18 +59,5 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 struct AppState {
-    device_manager: DeviceManager,
-}
-
-impl AppState {
-    fn next_node_id(&self) -> Result<u64, anyhow::Error> {
-        Ok(self
-            .device_manager
-            .list_devices()?
-            .into_iter()
-            .map(|device| device.node_id)
-            .max()
-            .map(|max_node_id| max_node_id + 1)
-            .unwrap_or(MINIMUM_NODE_ID))
-    }
+    matter_controller: MatterController,
 }

@@ -5,6 +5,19 @@
   </head>
 
   <body>
-    <h1>Added '{{ name }}'</h1>
+    <h1>
+      Added '{{ node_info.label.as_ref().unwrap() }}' as node ID {{
+      node_info.node_id }}.
+    </h1>
+
+    <ul>
+      {% if let Some(vendor_id) = node_info.vendor_id %}
+      <li>Vendor ID: {{ vendor_id }}</li>
+      {% endif %} {% if let Some(product_id) = node_info.product_id %}
+      <li>Product ID: {{ product_id }}</li>
+      {% endif %}
+    </ul>
+
+    <p><a href="/">Home</a></p>
   </body>
 </html>

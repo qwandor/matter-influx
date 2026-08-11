@@ -10,14 +10,13 @@
     <h2>Devices</h2>
 
     <ul>
-      {% for device in devices %}
+      {% for node in nodes %}
       <li>
-        {{ device.device.node_id}}: {{ device.device.name }} ({{
-        device.device.address }})
+        {{ node.node.node_id}}: {{ node.node.label.as_ref().unwrap() }}
         <ul>
-          {% if let Some(error) = device.error %}
+          {% if let Some(error) = node.error %}
           <li class="error">{{ error }}</li>
-          {% endif %} {% for info in device.info %}
+          {% endif %} {% for info in node.info %}
           <li>{{ info }}</li>
           {% endfor %}
         </ul>
