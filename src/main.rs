@@ -1,6 +1,7 @@
 mod config;
 mod controllers;
 mod errors;
+mod matter;
 
 use crate::{
     config::Config,

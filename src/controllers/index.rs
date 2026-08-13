@@ -1,9 +1,13 @@
-use crate::{AppState, errors::AppError};
+use crate::{
+    AppState,
+    errors::AppError,
+    matter::{MeasurementUnit, read_values_in_order},
+};
 use askama::Template;
 use axum::{extract::State, response::Html};
 use futures::future::join_all;
 use matter_clusters::r#gen::{on_off, relative_humidity_measurement, temperature_measurement};
-use matter_controller::{MatterController, NodeInfo, ReadPath, Value};
+use matter_controller::{AttributePath, MatterController, NodeInfo, ReadPath, Value};
 use std::sync::Arc;
 
 const CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT: u32 = 0x042a;
@@ -103,41 +107,47 @@ async fn get_device_info(
     {
         info.push(format!("Humidity: {}.{} %", humidity / 100, humidity % 100));
     }
-    if let [(_, Value::Float(value)), (_, Value::Bytes(unit))] = node
-        .read(&[
-            ReadPath::concrete(
-                1,
-                CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
-            ),
-            ReadPath::concrete(
-                1,
-                CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
-            ),
-        ])
-        .await?
-        .as_slice()
+    if let [Some(Value::Float(value)), Some(Value::Uint(unit))] = read_values_in_order(
+        &node,
+        &[
+            AttributePath {
+                endpoint: 1,
+                cluster: CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
+                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
+            },
+            AttributePath {
+                endpoint: 1,
+                cluster: CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
+                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
+            },
+        ],
+    )
+    .await?
+    .as_slice()
+        && let Some(unit) = MeasurementUnit::from_uint(*unit)
     {
-        info.push(format!("PM2.5: {} {:?}", value, unit));
+        info.push(format!("PM2.5: {} {}", value, unit));
     }
-    if let [(_, Value::Float(value)), (_, Value::Bytes(unit))] = node
-        .read(&[
-            ReadPath::concrete(
-                1,
-                CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
-            ),
-            ReadPath::concrete(
-                1,
-                CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-                CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
-            ),
-        ])
-        .await?
-        .as_slice()
+    if let [Some(Value::Float(value)), Some(Value::Uint(unit))] = read_values_in_order(
+        &node,
+        &[
+            AttributePath {
+                endpoint: 1,
+                cluster: CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
+                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
+            },
+            AttributePath {
+                endpoint: 1,
+                cluster: CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
+                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
+            },
+        ],
+    )
+    .await?
+    .as_slice()
+        && let Some(unit) = MeasurementUnit::from_uint(*unit)
     {
-        info.push(format!("CO2: {} {:?}", value, unit));
+        info.push(format!("CO2: {} {}", value, unit));
     }
     Ok(info)
 }
