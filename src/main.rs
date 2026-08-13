@@ -14,13 +14,16 @@ use log::info;
 use matter_controller::{AttestationTrust, FabricConfig, FileStore, MatterController, MatterTime};
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tracing_subscriber::EnvFilter;
 
 const RCAC_ID: u64 = 42;
 const CONTROLLER_NODE_ID: u64 = 1;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    pretty_env_logger::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
 
     let config = Config::from_file()?;
 
