@@ -12,7 +12,10 @@ use axum::{
 };
 use log::info;
 use matter_controller::{AttestationTrust, FabricConfig, FileStore, MatterController, MatterTime};
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
@@ -42,7 +45,15 @@ async fn main() -> Result<(), anyhow::Error> {
                 config.matter_fabric_id,
                 RCAC_ID,
                 CONTROLLER_NODE_ID,
-                (MatterTime::NO_EXPIRY, MatterTime::NO_EXPIRY),
+                (
+                    MatterTime::from_unix_secs(
+                        (SystemTime::now() - Duration::from_hours(72))
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs(),
+                    ),
+                    MatterTime::NO_EXPIRY,
+                ),
             ))
             .await?;
     }
