@@ -1,19 +1,9 @@
-use crate::{
-    AppState,
-    errors::AppError,
-    matter::{MeasurementUnit, read_values_in_order},
-};
+use crate::{AppState, errors::AppError, matter::read_all_known_clusters};
 use askama::Template;
 use axum::{extract::State, response::Html};
 use futures::future::join_all;
-use matter_clusters::r#gen::{on_off, relative_humidity_measurement, temperature_measurement};
-use matter_controller::{AttributePath, MatterController, NodeInfo, ReadPath, Value};
+use matter_controller::{MatterController, NodeInfo};
 use std::sync::Arc;
-
-const CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT: u32 = 0x042a;
-const CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT: u32 = 0x040d;
-const CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE: u32 = 0x0000;
-const CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT: u32 = 0x0008;
 
 pub async fn index(State(state): State<Arc<AppState>>) -> Result<Html<String>, AppError> {
     let nodes = state.matter_controller.nodes().await?;
@@ -64,90 +54,9 @@ async fn get_device_info(
     matter_controller: &MatterController,
 ) -> Result<Vec<String>, anyhow::Error> {
     let node = matter_controller.node(node_id);
-    let mut info = Vec::new();
-    let on = node
-        .read(&[ReadPath::cluster(1, on_off::CLUSTER_ID)])
-        .await?;
-    info.push(format!("{on:?}"));
-    if let &[(_, Value::Bool(on))] = node
-        .read(&[ReadPath::concrete(
-            1,
-            on_off::CLUSTER_ID,
-            on_off::attribute_id::ON_OFF,
-        )])
+    Ok(read_all_known_clusters(&node, 1)
         .await?
-        .as_slice()
-    {
-        info.push(if on { "On" } else { "Off" }.to_owned());
-    }
-
-    if let &[(_, Value::Int(temperature))] = node
-        .read(&[ReadPath::concrete(
-            1,
-            temperature_measurement::CLUSTER_ID,
-            temperature_measurement::attribute_id::MEASURED_VALUE,
-        )])
-        .await?
-        .as_slice()
-    {
-        info.push(format!(
-            "Temperature: {}.{} °C",
-            temperature / 100,
-            temperature % 100
-        ));
-    }
-    if let &[(_, Value::Uint(humidity))] = node
-        .read(&[ReadPath::concrete(
-            1,
-            relative_humidity_measurement::CLUSTER_ID,
-            relative_humidity_measurement::attribute_id::MEASURED_VALUE,
-        )])
-        .await?
-        .as_slice()
-    {
-        info.push(format!("Humidity: {}.{} %", humidity / 100, humidity % 100));
-    }
-    if let [Some(Value::Float(value)), Some(Value::Uint(unit))] = read_values_in_order(
-        &node,
-        &[
-            AttributePath {
-                endpoint: 1,
-                cluster: CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
-            },
-            AttributePath {
-                endpoint: 1,
-                cluster: CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
-            },
-        ],
-    )
-    .await?
-    .as_slice()
-        && let Some(unit) = MeasurementUnit::from_uint(*unit)
-    {
-        info.push(format!("PM2.5: {} {}", value, unit));
-    }
-    if let [Some(Value::Float(value)), Some(Value::Uint(unit))] = read_values_in_order(
-        &node,
-        &[
-            AttributePath {
-                endpoint: 1,
-                cluster: CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
-            },
-            AttributePath {
-                endpoint: 1,
-                cluster: CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
-            },
-        ],
-    )
-    .await?
-    .as_slice()
-        && let Some(unit) = MeasurementUnit::from_uint(*unit)
-    {
-        info.push(format!("CO2: {} {}", value, unit));
-    }
-    Ok(info)
+        .into_iter()
+        .map(|cluster_value| cluster_value.to_string())
+        .collect())
 }
