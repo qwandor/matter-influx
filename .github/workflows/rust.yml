@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build
         run: cargo build --all-features
       - name: Run tests
@@ -27,15 +27,15 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.13
         with:
           tool: cargo-llvm-cov
       - name: Run tests with coverage
         run: cargo llvm-cov test --all-features --codecov --output-path codecov-report.json
       - name: Upload coverage to codecov.io
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           fail_ci_if_error: true
           files: codecov-report.json
