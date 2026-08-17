@@ -31,7 +31,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let config = Config::from_file()?;
 
-    let data_exists = config.matter_data_path.exists();
     let matter_controller =
         MatterController::builder(Arc::new(FileStore::new(&config.matter_data_path)))
             .attestation_trust(AttestationTrust::from_dirs(
@@ -40,7 +39,7 @@ async fn main() -> Result<(), anyhow::Error> {
             )?)
             .build()
             .await?;
-    if !data_exists {
+    if matter_controller.fabrics().await?.is_empty() {
         matter_controller
             .create_fabric(FabricConfig::new(
                 config.matter_fabric_id,
