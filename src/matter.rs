@@ -1,15 +1,13 @@
 use log::debug;
-use matter_clusters::r#gen::{on_off, relative_humidity_measurement, temperature_measurement};
+use matter_clusters::r#gen::{
+    carbon_dioxide_concentration_measurement, on_off, pm25_concentration_measurement,
+    relative_humidity_measurement, temperature_measurement,
+};
 use matter_controller::{AttributePath, Node, ReadPath, Value};
 use std::{
     collections::BTreeMap,
     fmt::{self, Display, Formatter},
 };
-
-const CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT: u32 = 0x042a;
-const CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT: u32 = 0x040d;
-const CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE: u32 = 0x0000;
-const CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT: u32 = 0x0008;
 
 /// The value read from some cluster and parsed, ready to display.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
@@ -104,13 +102,13 @@ pub async fn read_all_known_clusters(
         &[
             AttributePath {
                 endpoint: endpoint,
-                cluster: CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
+                cluster: pm25_concentration_measurement::CLUSTER_ID,
+                attribute: pm25_concentration_measurement::attribute_id::MEASURED_VALUE,
             },
             AttributePath {
                 endpoint: endpoint,
-                cluster: CLUSTER_ID_PM2_5_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
+                cluster: pm25_concentration_measurement::CLUSTER_ID,
+                attribute: pm25_concentration_measurement::attribute_id::MEASUREMENT_UNIT,
             },
         ],
     )
@@ -130,13 +128,13 @@ pub async fn read_all_known_clusters(
         &[
             AttributePath {
                 endpoint: endpoint,
-                cluster: CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREDVALUE,
+                cluster: carbon_dioxide_concentration_measurement::CLUSTER_ID,
+                attribute: carbon_dioxide_concentration_measurement::attribute_id::MEASURED_VALUE,
             },
             AttributePath {
                 endpoint: endpoint,
-                cluster: CLUSTER_ID_CARBON_DIOXIDE_CONCENTRATION_MEASUREMENT,
-                attribute: CONCENTRATION_MEASUREMENT_ATTR_ID_MEASUREMENTUNIT,
+                cluster: carbon_dioxide_concentration_measurement::CLUSTER_ID,
+                attribute: carbon_dioxide_concentration_measurement::attribute_id::MEASUREMENT_UNIT,
             },
         ],
     )
