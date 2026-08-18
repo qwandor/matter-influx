@@ -16,7 +16,7 @@ axum = { version = "0.8.9", features = ["macros"] }
 futures = "0.3.34"
 log = "0.4.32"
 matter-clusters = "0.4.1"
-matter-controller = "0.7.0"
+matter-controller = "0.7.1"
 serde = { version = "1.0.229", features = ["derive"] }
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
 toml = "1.1.2"
