@@ -884,9 +884,9 @@ dependencies = [
 
 [[package]]
 name = "matter-controller"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7349f8ca2bcf34fd3c5f1093e391a42d9dd2e61ed3f3d26d96e3136d85a998bc"
+checksum = "10d6bcebad53e0e690d2a7f29ad30d38af1d091de06486120b7923bad71ccadc"
 dependencies = [
  "matter-bdx",
  "matter-cert",
