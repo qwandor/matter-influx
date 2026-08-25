@@ -91,7 +91,7 @@ pub async fn read_all_known_clusters(
         .as_slice()
     {
         cluster_values.push(ClusterValueDetails {
-            name: "Temperature",
+            name: "Humidity",
             value: ClusterValue::Float(value as f32 / 100.0),
             unit: Some("%"),
         });
