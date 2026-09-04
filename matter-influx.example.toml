@@ -12,3 +12,13 @@ paa_dir = "/usr/share/matter-influx/paa-root-certs"
 
 # The directory of CD certificates.
 cd_dir = "/usr/share/matter-influx/cd-certs"
+
+[influxdb]
+# The URL of the InfluxDB to which to connect.
+url = "http://localhost:8086"
+# The username with which to authenticate to InfluxDB, if any.
+#username = ""
+# The password with which to authenticate to InfluxDB, if any.
+#password = ""
+# The name of the InfluxDB database to which to write data.
+database = "matter"

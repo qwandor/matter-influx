@@ -11,6 +11,7 @@ use axum::{
     Router,
     routing::{get, post},
 };
+use influx_db_client::Precision;
 use log::info;
 use matter_controller::{AttestationTrust, FabricConfig, FileStore, MatterController, MatterTime};
 use std::{
@@ -23,6 +24,8 @@ use tracing_subscriber::EnvFilter;
 const RCAC_ID: u64 = 42;
 const CONTROLLER_NODE_ID: u64 = 1;
 
+const INFLUXDB_PRECISION: Option<Precision> = Some(Precision::Seconds);
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     tracing_subscriber::fmt()
@@ -30,6 +33,11 @@ async fn main() -> Result<(), anyhow::Error> {
         .init();
 
     let config = Config::from_file()?;
+    let influxdb_client = if let Some(influxdb_config) = &config.influxdb {
+        Some(influxdb_config.make_client()?)
+    } else {
+        None
+    };
 
     let matter_controller =
         MatterController::builder(Arc::new(FileStore::new(&config.matter_data_path)))
