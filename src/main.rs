@@ -11,6 +11,7 @@ use axum::{
     Router,
     routing::{get, post},
 };
+use eyre::Report;
 use influx_db_client::Precision;
 use log::info;
 use matter_controller::{AttestationTrust, FabricConfig, FileStore, MatterController, MatterTime};
@@ -27,7 +28,7 @@ const CONTROLLER_NODE_ID: u64 = 1;
 const INFLUXDB_PRECISION: Option<Precision> = Some(Precision::Seconds);
 
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> Result<(), Report> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .init();

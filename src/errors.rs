@@ -2,9 +2,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use eyre::Report;
 
 #[derive(Debug)]
-pub struct AppError(anyhow::Error);
+pub struct AppError(Report);
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
@@ -16,7 +17,7 @@ impl IntoResponse for AppError {
     }
 }
 
-impl<E: Into<anyhow::Error>> From<E> for AppError {
+impl<E: Into<Report>> From<E> for AppError {
     fn from(err: E) -> Self {
         Self(err.into())
     }

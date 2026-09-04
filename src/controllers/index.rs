@@ -1,6 +1,7 @@
 use crate::{AppState, errors::AppError, matter::read_all_known_clusters};
 use askama::Template;
 use axum::{extract::State, response::Html};
+use eyre::Report;
 use futures::future::join_all;
 use matter_controller::{MatterController, NodeInfo};
 use std::sync::Arc;
@@ -52,7 +53,7 @@ impl DeviceInfo {
 async fn get_device_info(
     node_id: u64,
     matter_controller: &MatterController,
-) -> Result<Vec<String>, anyhow::Error> {
+) -> Result<Vec<String>, Report> {
     let node = matter_controller.node(node_id);
     Ok(read_all_known_clusters(&node, 1)
         .await?

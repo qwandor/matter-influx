@@ -1,4 +1,4 @@
-use anyhow::{Context, bail};
+use eyre::{Report, WrapErr, bail};
 use influx_db_client::{Client, Url};
 use serde::Deserialize;
 use std::{
@@ -36,7 +36,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_file() -> Result<Self, anyhow::Error> {
+    pub fn from_file() -> Result<Self, Report> {
         for filename in &CONFIG_FILENAMES {
             if Path::new(filename).is_file() {
                 return Config::read(filename);
@@ -48,9 +48,9 @@ impl Config {
         );
     }
 
-    fn read(filename: &str) -> Result<Config, anyhow::Error> {
+    fn read(filename: &str) -> Result<Config, Report> {
         let config_file =
-            read_to_string(filename).with_context(|| format!("Reading {filename}"))?;
+            read_to_string(filename).wrap_err_with(|| format!("Reading {filename}"))?;
         Ok(toml::from_str(&config_file)?)
     }
 }
@@ -77,7 +77,7 @@ impl Default for InfluxDbConfig {
 
 impl InfluxDbConfig {
     /// Construct a new InfluxDB [`Client`] based on the configuration options.
-    pub fn make_client(&self) -> Result<Client, anyhow::Error> {
+    pub fn make_client(&self) -> Result<Client, Report> {
         let mut influxdb_client = Client::new(self.url.to_owned(), &self.database);
         if let (Some(username), Some(password)) = (&self.username, &self.password) {
             influxdb_client = influxdb_client.set_authentication(username, password);
