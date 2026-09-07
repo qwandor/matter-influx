@@ -1117,9 +1117,9 @@ dependencies = [
 
 [[package]]
 name = "matter-commissioning"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61767ed32350f52a9088b93f54269886a9710a6a6f94b77705b27d04a93add10"
+checksum = "25fa768ab02c456d9c52e6fb87ace42f698b59e54db801f08e88a42999c3c9d9"
 dependencies = [
  "base64 0.23.1",
  "bitflags",
@@ -1140,9 +1140,9 @@ dependencies = [
 
 [[package]]
 name = "matter-controller"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48204bb906de4f060666548b95612ca14488e691bab11e81bb6b920e57469793"
+checksum = "c04111faba0dce474e9d5f17e23624787b90a7013cd042a86865b1bbf54c49d8"
 dependencies = [
  "matter-bdx",
  "matter-cert",
