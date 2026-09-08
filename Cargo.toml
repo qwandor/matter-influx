@@ -28,6 +28,24 @@ url = { version = "2.5.8", features = ["serde"] }
 
 [package.metadata.deb]
 section = "net"
+maintainer-scripts = "debian-scripts"
+assets = [
+  [
+    "target/release/matter-influx",
+    "usr/bin/",
+    "755",
+  ],
+  [
+    "matter-influx.example.toml",
+    "etc/matter-influx.toml",
+    "640",
+  ],
+  [
+    "README.md",
+    "usr/share/doc/matter-influx/",
+    "644",
+  ],
+]
 
 # This section needs to be here even if it's empty, for the systemd integration to work.
 [package.metadata.deb.systemd-units]
