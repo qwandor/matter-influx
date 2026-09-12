@@ -7,7 +7,10 @@ use matter_controller::{AttributePath, Node, ReadPath, Value};
 use std::{
     collections::BTreeMap,
     fmt::{self, Display, Formatter},
+    ops::RangeInclusive,
 };
+
+const ENDPOINTS: RangeInclusive<u16> = 0..=2;
 
 /// The value read from some cluster and parsed, ready to display.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
@@ -44,6 +47,16 @@ impl Display for ClusterValue {
 }
 
 pub async fn read_all_known_clusters(
+    node: &Node,
+) -> Result<Vec<ClusterValueDetails>, matter_controller::Error> {
+    let mut cluster_values = Vec::new();
+    for endpoint in ENDPOINTS {
+        cluster_values.extend(read_all_known_clusters_for_endpoint(node, endpoint).await?);
+    }
+    Ok(cluster_values)
+}
+
+async fn read_all_known_clusters_for_endpoint(
     node: &Node,
     endpoint: u16,
 ) -> Result<Vec<ClusterValueDetails>, matter_controller::Error> {

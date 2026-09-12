@@ -55,7 +55,7 @@ async fn get_device_info(
     matter_controller: &MatterController,
 ) -> Result<Vec<String>, Report> {
     let node = matter_controller.node(node_id);
-    Ok(read_all_known_clusters(&node, 1)
+    Ok(read_all_known_clusters(&node)
         .await?
         .into_iter()
         .map(|cluster_value| cluster_value.to_string())
