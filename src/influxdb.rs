@@ -56,7 +56,7 @@ async fn handle_subscription(
         debug!("event: {event:?}");
         if let SubscriptionEvent::Report(report) = event
             && let Some(details) = ClusterValueDetails::for_attribute_value(
-                &report.path,
+                report.path,
                 &report.value,
                 &unchanging_values,
             )
@@ -91,6 +91,12 @@ fn make_point(
         )
         .add_field("value", Value::from(value_details.value))
         .add_tag("device_id", node_info.node_id.to_string())
+        .add_tag("endpoint_id", value_details.path.endpoint.to_string())
+        .add_tag("cluster_id", format!("{:04x}", value_details.path.cluster))
+        .add_tag(
+            "attribute_id",
+            format!("{:04x}", value_details.path.attribute),
+        )
         .add_tag("property_name", value_details.name);
     if let Some(label) = &node_info.label {
         point = point.add_tag("device_name", label.to_owned());
