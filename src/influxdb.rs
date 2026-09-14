@@ -105,6 +105,9 @@ fn make_point(
         point = point.add_tag("unit", unit);
     }
     if let ClusterValue::Boolean(value) = value_details.value {
+        // Grafana is unable to display booleans directly, so add an integer for convenience.
+        // https://github.com/grafana/grafana/issues/8152
+        // https://github.com/grafana/grafana/issues/24929
         point = point.add_field("value_int", if value { 1 } else { 0 });
     }
     point
