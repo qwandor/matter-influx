@@ -1,16 +1,61 @@
-use log::debug;
 use matter_clusters::r#gen::{
     carbon_dioxide_concentration_measurement, on_off, pm25_concentration_measurement, power_source,
     relative_humidity_measurement, temperature_measurement,
 };
 use matter_controller::{AttributePath, Node, ReadPath, Value};
 use std::{
-    collections::BTreeMap,
+    collections::HashMap,
     fmt::{self, Display, Formatter},
-    ops::RangeInclusive,
 };
 
-const ENDPOINTS: RangeInclusive<u16> = 0..=2;
+/// Paths for attributes which we should read once, but aren't expected to change. These include
+/// things like measurement units.
+pub const UNCHANGING_ATTRIBUTES: &[ReadPath] = &[
+    ReadPath::new(
+        None,
+        Some(pm25_concentration_measurement::CLUSTER_ID),
+        Some(pm25_concentration_measurement::attribute_id::MEASUREMENT_UNIT),
+    ),
+    ReadPath::new(
+        None,
+        Some(carbon_dioxide_concentration_measurement::CLUSTER_ID),
+        Some(carbon_dioxide_concentration_measurement::attribute_id::MEASUREMENT_UNIT),
+    ),
+];
+
+/// Paths for attributes which we support and expect to change.
+pub const CHANGING_ATTRIBUTES: &[ReadPath] = &[
+    ReadPath::new(
+        None,
+        Some(on_off::CLUSTER_ID),
+        Some(on_off::attribute_id::ON_OFF),
+    ),
+    ReadPath::new(
+        None,
+        Some(power_source::CLUSTER_ID),
+        Some(power_source::attribute_id::BAT_PERCENT_REMAINING),
+    ),
+    ReadPath::new(
+        None,
+        Some(temperature_measurement::CLUSTER_ID),
+        Some(temperature_measurement::attribute_id::MEASURED_VALUE),
+    ),
+    ReadPath::new(
+        None,
+        Some(relative_humidity_measurement::CLUSTER_ID),
+        Some(relative_humidity_measurement::attribute_id::MEASURED_VALUE),
+    ),
+    ReadPath::new(
+        None,
+        Some(pm25_concentration_measurement::CLUSTER_ID),
+        Some(pm25_concentration_measurement::attribute_id::MEASURED_VALUE),
+    ),
+    ReadPath::new(
+        None,
+        Some(carbon_dioxide_concentration_measurement::CLUSTER_ID),
+        Some(carbon_dioxide_concentration_measurement::attribute_id::MEASURED_VALUE),
+    ),
+];
 
 /// The value read from some cluster and parsed, ready to display.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
@@ -18,6 +63,85 @@ pub struct ClusterValueDetails {
     pub name: &'static str,
     pub value: ClusterValue,
     pub unit: Option<&'static str>,
+}
+
+impl ClusterValueDetails {
+    pub fn for_attribute_value(
+        path: &AttributePath,
+        value: &Value,
+        unchanging_values: &HashMap<AttributePath, Value>,
+    ) -> Option<Self> {
+        let endpoint = path.endpoint;
+        match (path.cluster, path.attribute, value) {
+            (on_off::CLUSTER_ID, on_off::attribute_id::ON_OFF, &Value::Bool(on)) => {
+                Some(ClusterValueDetails {
+                    name: "On",
+                    value: ClusterValue::Boolean(on),
+                    unit: None,
+                })
+            }
+            (
+                power_source::CLUSTER_ID,
+                power_source::attribute_id::BAT_PERCENT_REMAINING,
+                &Value::Uint(value),
+            ) => Some(ClusterValueDetails {
+                name: "Battery level",
+                value: ClusterValue::Float(value as f32 / 2.0),
+                unit: Some("%"),
+            }),
+            (
+                temperature_measurement::CLUSTER_ID,
+                temperature_measurement::attribute_id::MEASURED_VALUE,
+                &Value::Int(value),
+            ) => Some(ClusterValueDetails {
+                name: "Temperature",
+                value: ClusterValue::Float(value as f32 / 100.0),
+                unit: Some("°C"),
+            }),
+            (
+                relative_humidity_measurement::CLUSTER_ID,
+                relative_humidity_measurement::attribute_id::MEASURED_VALUE,
+                &Value::Uint(value),
+            ) => Some(ClusterValueDetails {
+                name: "Humidity",
+                value: ClusterValue::Float(value as f32 / 100.0),
+                unit: Some("%"),
+            }),
+            (
+                pm25_concentration_measurement::CLUSTER_ID,
+                pm25_concentration_measurement::attribute_id::MEASURED_VALUE,
+                &Value::Float(value),
+            ) if let Some(&Value::Uint(unit)) = unchanging_values.get(&AttributePath {
+                endpoint,
+                cluster: pm25_concentration_measurement::CLUSTER_ID,
+                attribute: pm25_concentration_measurement::attribute_id::MEASUREMENT_UNIT,
+            }) && let Some(unit) = MeasurementUnit::from_uint(unit) =>
+            {
+                Some(ClusterValueDetails {
+                    name: "PM2.5",
+                    value: ClusterValue::Float(value),
+                    unit: Some(unit.short()),
+                })
+            }
+            (
+                carbon_dioxide_concentration_measurement::CLUSTER_ID,
+                carbon_dioxide_concentration_measurement::attribute_id::MEASURED_VALUE,
+                &Value::Float(value),
+            ) if let Some(&Value::Uint(unit)) = unchanging_values.get(&AttributePath {
+                endpoint,
+                cluster: carbon_dioxide_concentration_measurement::CLUSTER_ID,
+                attribute: carbon_dioxide_concentration_measurement::attribute_id::MEASUREMENT_UNIT,
+            }) && let Some(unit) = MeasurementUnit::from_uint(unit) =>
+            {
+                Some(ClusterValueDetails {
+                    name: "CO₂",
+                    value: ClusterValue::Float(value),
+                    unit: Some(unit.short()),
+                })
+            }
+            _ => None,
+        }
+    }
 }
 
 impl Display for ClusterValueDetails {
@@ -49,172 +173,18 @@ impl Display for ClusterValue {
 pub async fn read_all_known_clusters(
     node: &Node,
 ) -> Result<Vec<ClusterValueDetails>, matter_controller::Error> {
-    let mut cluster_values = Vec::new();
-    for endpoint in ENDPOINTS {
-        cluster_values.extend(read_all_known_clusters_for_endpoint(node, endpoint).await?);
-    }
-    Ok(cluster_values)
-}
-
-async fn read_all_known_clusters_for_endpoint(
-    node: &Node,
-    endpoint: u16,
-) -> Result<Vec<ClusterValueDetails>, matter_controller::Error> {
-    let mut cluster_values = Vec::new();
-
-    if let &[(_, Value::Bool(on))] = node
-        .read(&[ReadPath::concrete(
-            endpoint,
-            on_off::CLUSTER_ID,
-            on_off::attribute_id::ON_OFF,
-        )])
+    let unchanging_values = node
+        .read(UNCHANGING_ATTRIBUTES)
         .await?
-        .as_slice()
-    {
-        cluster_values.push(ClusterValueDetails {
-            name: "On",
-            value: ClusterValue::Boolean(on),
-            unit: None,
-        });
-    }
+        .into_iter()
+        .collect::<HashMap<_, _>>();
+    let changing_values = node.read(CHANGING_ATTRIBUTES).await?;
 
-    if let &[(_, Value::Uint(value))] = node
-        .read(&[ReadPath::concrete(
-            endpoint,
-            power_source::CLUSTER_ID,
-            power_source::attribute_id::BAT_PERCENT_REMAINING,
-        )])
-        .await?
-        .as_slice()
-    {
-        cluster_values.push(ClusterValueDetails {
-            name: "Battery level",
-            value: ClusterValue::Float(value as f32 / 2.0),
-            unit: Some("%"),
+    Ok(changing_values
+        .iter()
+        .filter_map(|(path, value)| {
+            ClusterValueDetails::for_attribute_value(path, value, &unchanging_values)
         })
-    }
-
-    if let &[(_, Value::Int(value))] = node
-        .read(&[ReadPath::concrete(
-            endpoint,
-            temperature_measurement::CLUSTER_ID,
-            temperature_measurement::attribute_id::MEASURED_VALUE,
-        )])
-        .await?
-        .as_slice()
-    {
-        cluster_values.push(ClusterValueDetails {
-            name: "Temperature",
-            value: ClusterValue::Float(value as f32 / 100.0),
-            unit: Some("°C"),
-        });
-    }
-
-    if let &[(_, Value::Uint(value))] = node
-        .read(&[ReadPath::concrete(
-            endpoint,
-            relative_humidity_measurement::CLUSTER_ID,
-            relative_humidity_measurement::attribute_id::MEASURED_VALUE,
-        )])
-        .await?
-        .as_slice()
-    {
-        cluster_values.push(ClusterValueDetails {
-            name: "Humidity",
-            value: ClusterValue::Float(value as f32 / 100.0),
-            unit: Some("%"),
-        });
-    }
-
-    if let &[Some(Value::Float(value)), Some(Value::Uint(unit))] = read_values_in_order(
-        &node,
-        &[
-            AttributePath {
-                endpoint: endpoint,
-                cluster: pm25_concentration_measurement::CLUSTER_ID,
-                attribute: pm25_concentration_measurement::attribute_id::MEASURED_VALUE,
-            },
-            AttributePath {
-                endpoint: endpoint,
-                cluster: pm25_concentration_measurement::CLUSTER_ID,
-                attribute: pm25_concentration_measurement::attribute_id::MEASUREMENT_UNIT,
-            },
-        ],
-    )
-    .await?
-    .as_slice()
-        && let Some(unit) = MeasurementUnit::from_uint(unit)
-    {
-        cluster_values.push(ClusterValueDetails {
-            name: "PM2.5",
-            value: ClusterValue::Float(value),
-            unit: Some(unit.short()),
-        });
-    }
-
-    if let &[Some(Value::Float(value)), Some(Value::Uint(unit))] = read_values_in_order(
-        &node,
-        &[
-            AttributePath {
-                endpoint: endpoint,
-                cluster: carbon_dioxide_concentration_measurement::CLUSTER_ID,
-                attribute: carbon_dioxide_concentration_measurement::attribute_id::MEASURED_VALUE,
-            },
-            AttributePath {
-                endpoint: endpoint,
-                cluster: carbon_dioxide_concentration_measurement::CLUSTER_ID,
-                attribute: carbon_dioxide_concentration_measurement::attribute_id::MEASUREMENT_UNIT,
-            },
-        ],
-    )
-    .await?
-    .as_slice()
-        && let Some(unit) = MeasurementUnit::from_uint(unit)
-    {
-        cluster_values.push(ClusterValueDetails {
-            name: "CO₂",
-            value: ClusterValue::Float(value),
-            unit: Some(unit.short()),
-        });
-    }
-
-    Ok(cluster_values)
-}
-
-pub async fn read_values_in_order(
-    node: &Node,
-    paths: &[AttributePath],
-) -> Result<Vec<Option<Value>>, matter_controller::Error> {
-    let read_paths = paths
-        .into_iter()
-        .map(|path| (*path).into())
-        .collect::<Vec<_>>();
-    let mut values = node
-        .read(&read_paths)
-        .await?
-        .into_iter()
-        .map(
-            |(
-                AttributePath {
-                    endpoint,
-                    cluster,
-                    attribute,
-                },
-                value,
-            )| ((endpoint, cluster, attribute), value),
-        )
-        .collect::<BTreeMap<_, _>>();
-    debug!("values: {values:?}");
-    Ok(paths
-        .into_iter()
-        .map(
-            |&AttributePath {
-                 endpoint,
-                 cluster,
-                 attribute,
-                 ..
-             }| values.remove(&(endpoint, cluster, attribute)),
-        )
         .collect())
 }
 
