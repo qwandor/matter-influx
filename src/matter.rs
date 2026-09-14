@@ -160,12 +160,30 @@ pub enum ClusterValue {
     Float(f32),
 }
 
+impl ClusterValue {
+    pub fn datatype_str(self) -> &'static str {
+        match self {
+            ClusterValue::Boolean(_) => "boolean",
+            ClusterValue::Float(_) => "float",
+        }
+    }
+}
+
 impl Display for ClusterValue {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             ClusterValue::Boolean(true) => f.write_str("on"),
             ClusterValue::Boolean(false) => f.write_str("off"),
             ClusterValue::Float(value) => write!(f, "{value}"),
+        }
+    }
+}
+
+impl From<ClusterValue> for influx_db_client::Value<'static> {
+    fn from(value: ClusterValue) -> Self {
+        match value {
+            ClusterValue::Boolean(value) => influx_db_client::Value::Boolean(value),
+            ClusterValue::Float(value) => influx_db_client::Value::Float(value.into()),
         }
     }
 }
