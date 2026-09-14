@@ -60,6 +60,7 @@ pub const CHANGING_ATTRIBUTES: &[ReadPath] = &[
 /// The value read from some cluster and parsed, ready to display.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct ClusterValueDetails {
+    pub path: AttributePath,
     pub name: &'static str,
     pub value: ClusterValue,
     pub unit: Option<&'static str>,
@@ -67,7 +68,7 @@ pub struct ClusterValueDetails {
 
 impl ClusterValueDetails {
     pub fn for_attribute_value(
-        path: &AttributePath,
+        path: AttributePath,
         value: &Value,
         unchanging_values: &HashMap<AttributePath, Value>,
     ) -> Option<Self> {
@@ -75,6 +76,7 @@ impl ClusterValueDetails {
         match (path.cluster, path.attribute, value) {
             (on_off::CLUSTER_ID, on_off::attribute_id::ON_OFF, &Value::Bool(on)) => {
                 Some(ClusterValueDetails {
+                    path,
                     name: "On",
                     value: ClusterValue::Boolean(on),
                     unit: None,
@@ -85,6 +87,7 @@ impl ClusterValueDetails {
                 power_source::attribute_id::BAT_PERCENT_REMAINING,
                 &Value::Uint(value),
             ) => Some(ClusterValueDetails {
+                path,
                 name: "Battery level",
                 value: ClusterValue::Float(value as f32 / 2.0),
                 unit: Some("%"),
@@ -94,6 +97,7 @@ impl ClusterValueDetails {
                 temperature_measurement::attribute_id::MEASURED_VALUE,
                 &Value::Int(value),
             ) => Some(ClusterValueDetails {
+                path,
                 name: "Temperature",
                 value: ClusterValue::Float(value as f32 / 100.0),
                 unit: Some("°C"),
@@ -103,6 +107,7 @@ impl ClusterValueDetails {
                 relative_humidity_measurement::attribute_id::MEASURED_VALUE,
                 &Value::Uint(value),
             ) => Some(ClusterValueDetails {
+                path,
                 name: "Humidity",
                 value: ClusterValue::Float(value as f32 / 100.0),
                 unit: Some("%"),
@@ -118,6 +123,7 @@ impl ClusterValueDetails {
             }) && let Some(unit) = MeasurementUnit::from_uint(unit) =>
             {
                 Some(ClusterValueDetails {
+                    path,
                     name: "PM2.5",
                     value: ClusterValue::Float(value),
                     unit: Some(unit.short()),
@@ -134,6 +140,7 @@ impl ClusterValueDetails {
             }) && let Some(unit) = MeasurementUnit::from_uint(unit) =>
             {
                 Some(ClusterValueDetails {
+                    path,
                     name: "CO₂",
                     value: ClusterValue::Float(value),
                     unit: Some(unit.short()),
@@ -199,9 +206,9 @@ pub async fn read_all_known_clusters(
     let changing_values = node.read(CHANGING_ATTRIBUTES).await?;
 
     Ok(changing_values
-        .iter()
+        .into_iter()
         .filter_map(|(path, value)| {
-            ClusterValueDetails::for_attribute_value(path, value, &unchanging_values)
+            ClusterValueDetails::for_attribute_value(path, &value, &unchanging_values)
         })
         .collect())
 }
