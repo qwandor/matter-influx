@@ -1,6 +1,6 @@
 use log::debug;
 use matter_clusters::r#gen::{
-    carbon_dioxide_concentration_measurement, on_off, pm25_concentration_measurement,
+    carbon_dioxide_concentration_measurement, on_off, pm25_concentration_measurement, power_source,
     relative_humidity_measurement, temperature_measurement,
 };
 use matter_controller::{AttributePath, Node, ReadPath, Value};
@@ -76,6 +76,22 @@ async fn read_all_known_clusters_for_endpoint(
             value: ClusterValue::Boolean(on),
             unit: None,
         });
+    }
+
+    if let &[(_, Value::Uint(value))] = node
+        .read(&[ReadPath::concrete(
+            endpoint,
+            power_source::CLUSTER_ID,
+            power_source::attribute_id::BAT_PERCENT_REMAINING,
+        )])
+        .await?
+        .as_slice()
+    {
+        cluster_values.push(ClusterValueDetails {
+            name: "Battery level",
+            value: ClusterValue::Float(value as f32 / 2.0),
+            unit: Some("%"),
+        })
     }
 
     if let &[(_, Value::Int(value))] = node
