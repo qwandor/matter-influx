@@ -13,6 +13,12 @@ paa_dir = "/usr/share/matter-influx/certificates/paa-root-certs"
 # The directory of CD certificates.
 cd_dir = "/usr/share/matter-influx/certificates/cd-certs"
 
+# The minimum interval between attribute updates to subscribe to.
+minimum_interval_seconds = 10
+
+# The maximum interval between attribute updates to subscribe to.
+maximum_interval_seconds = 60
+
 [influxdb]
 # The URL of the InfluxDB to which to connect.
 url = "http://localhost:8086"

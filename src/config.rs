@@ -32,6 +32,12 @@ pub struct Config {
     /// The directory of CD certificates.
     #[serde(default = "default_cd_dir")]
     pub cd_dir: PathBuf,
+    /// The minimum interval between attribute updates to subscribe to.
+    #[serde(default = "default_minimum_interval_seconds")]
+    pub minimum_interval_seconds: u16,
+    /// The maximum interval between attribute updates to subscribe to.
+    #[serde(default = "default_maximum_interval_seconds")]
+    pub maximum_interval_seconds: u16,
     pub influxdb: Option<InfluxDbConfig>,
 }
 
@@ -104,6 +110,14 @@ fn default_paa_dir() -> PathBuf {
 
 fn default_cd_dir() -> PathBuf {
     "/usr/share/matter-influx/cd-certs".into()
+}
+
+fn default_minimum_interval_seconds() -> u16 {
+    10
+}
+
+fn default_maximum_interval_seconds() -> u16 {
+    60
 }
 
 #[cfg(test)]
