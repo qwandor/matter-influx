@@ -11,7 +11,7 @@ use axum::{
     Router,
     routing::{get, post},
 };
-use eyre::Report;
+use eyre::{Context, Report};
 use influx_db_client::Precision;
 use log::info;
 use matter_controller::{AttestationTrust, FabricConfig, FileStore, MatterController, MatterTime};
@@ -42,10 +42,16 @@ async fn main() -> Result<(), Report> {
 
     let matter_controller =
         MatterController::builder(Arc::new(FileStore::new(&config.matter_data_path)))
-            .attestation_trust(AttestationTrust::from_dirs(
-                &config.paa_dir,
-                &config.cd_dir,
-            )?)
+            .attestation_trust(
+                AttestationTrust::from_dirs(&config.paa_dir, &config.cd_dir).wrap_err_with(
+                    || {
+                        format!(
+                            "Reading certificates from {:?} and {:?}",
+                            config.paa_dir, config.cd_dir
+                        )
+                    },
+                )?,
+            )
             .build()
             .await?;
     if matter_controller.fabrics().await?.is_empty() {
