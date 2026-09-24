@@ -19,7 +19,7 @@ influx_db_client = { version = "0.7.0", default-features = false, features = [
 ] }
 log = "0.4.34"
 matter-clusters = "0.5.0"
-matter-controller = "0.14.0"
+matter-controller = { version = "0.14.0", path = "../../src/matter-rust/crates/matter-controller" }
 serde = { version = "1.0.229", features = ["derive"] }
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
 toml = "1.1.2"
