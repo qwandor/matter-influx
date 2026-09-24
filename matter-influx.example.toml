@@ -8,10 +8,10 @@ matter_fabric_id = 2000
 matter_data_path = "matter-influx/controller-state.bin"
 
 # The directory of PAA root certificates.
-paa_dir = "/usr/share/matter-influx/paa-root-certs"
+paa_dir = "/usr/share/matter-influx/certificates/paa-root-certs"
 
 # The directory of CD certificates.
-cd_dir = "/usr/share/matter-influx/cd-certs"
+cd_dir = "/usr/share/matter-influx/certificates/cd-certs"
 
 [influxdb]
 # The URL of the InfluxDB to which to connect.
