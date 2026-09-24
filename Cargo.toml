@@ -55,6 +55,11 @@ assets = [
     "usr/share/matter-influx/certificates/paa-root-certs",
     "644",
   ],
+  [
+    "state/.empty",
+    "var/lib/matter-influx/",
+    "644",
+  ],
 ]
 
 # This section needs to be here even if it's empty, for the systemd integration to work.

@@ -5,7 +5,7 @@ webserver_address = "[::]:3009"
 matter_fabric_id = 2000
 
 # The file in which to store Matter controller state.
-matter_data_path = "matter-influx/controller-state.bin"
+matter_data_path = "/var/lib/matter-influx/controller-state.bin"
 
 # The directory of PAA root certificates.
 paa_dir = "/usr/share/matter-influx/certificates/paa-root-certs"

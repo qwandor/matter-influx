@@ -1,2 +1,3 @@
 /target
-matter-influx.toml
+/matter-influx.toml
+/state/controller-state.bin
