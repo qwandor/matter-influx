@@ -1112,9 +1112,9 @@ dependencies = [
 
 [[package]]
 name = "matter-controller"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcae45a8a8d175fd2bdd598b2e1f769a29df18459d8c7478a30c62007676a0e9"
+checksum = "54372fab271bc180e4dab0e35a12345177b801b49f9b21074887bdc8a7a72e48"
 dependencies = [
  "matter-bdx",
  "matter-cert",
@@ -1191,9 +1191,9 @@ dependencies = [
 
 [[package]]
 name = "matter-transport"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "420e8f1e439d69f0d208e0ad104926471e171fce5cca54525f0c26bca750a15d"
+checksum = "98051c922e178b05c82657d5a3ed675665a653ce0afe310331d27d9bcfcc4fc1"
 dependencies = [
  "bitflags",
  "matter-codec",
