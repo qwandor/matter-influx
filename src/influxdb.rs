@@ -4,7 +4,7 @@ use crate::{
 };
 use eyre::{Report, WrapErr};
 use influx_db_client::{Client, Point, Precision, Value};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use matter_controller::{
     AttributePath, MatterController, NodeInfo, Subscription, SubscriptionEvent,
 };
@@ -33,7 +33,7 @@ pub async fn poll_values(
             if let Some(handle) = subscription_tasks.get_mut(&node_id) {
                 if handle.is_finished() {
                     if let Err(e) = handle.await {
-                        warn!("Subscription task for node {node_id} finished with error: {e}");
+                        error!("Subscription task for node {node_id} finished with error: {e}");
                     }
                     subscription_tasks.remove(&node_id);
                 } else {
@@ -84,7 +84,7 @@ async fn handle_subscription_log_error(
     if let Err(e) =
         handle_subscription(subscription, node_info, unchanging_values, influxdb_client).await
     {
-        warn!("Error handling subscription to node {node_id}: {e}");
+        error!("Error handling subscription to node {node_id}: {e:?}");
     } else {
         warn!("Subscription task for node {node_id} finished with no error");
     }
