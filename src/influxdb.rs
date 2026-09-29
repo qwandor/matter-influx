@@ -131,7 +131,7 @@ fn make_point(
             timestamp
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
-                .as_millis() as i64,
+                .as_secs() as i64,
         )
         .add_field("value", Value::from(value_details.value))
         .add_tag("device_id", node_info.node_id.to_string())
