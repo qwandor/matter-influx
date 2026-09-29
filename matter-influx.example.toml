@@ -23,7 +23,7 @@ maximum_interval_seconds = 60
 # The URL of the InfluxDB to which to connect.
 url = "http://localhost:8086"
 # The username with which to authenticate to InfluxDB, if any.
-#username = ""
+#username = "matterinflux"
 # The password with which to authenticate to InfluxDB, if any.
 #password = ""
 # The name of the InfluxDB database to which to write data.
