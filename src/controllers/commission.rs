@@ -23,7 +23,7 @@ pub async fn submit(
 
     match state
         .matter_controller
-        .commission(&pairing_code, Some(form.name.to_owned()))
+        .commission(pairing_code, Some(form.name.to_owned()))
         .await
     {
         Ok(node_info) => {
@@ -39,7 +39,7 @@ fn render_error(error: String, form: CommissionForm) -> Result<Html<String>, App
         error: Some(error),
         form,
     };
-    return Ok(Html(template.render()?));
+    Ok(Html(template.render()?))
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
