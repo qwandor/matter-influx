@@ -24,7 +24,7 @@ pub async fn poll_values(
     matter_controller: MatterController,
     config: Config,
 ) -> Result<(), Report> {
-    let mut subscription_tasks = BTreeMap::<_, JoinHandle<_>>::new();
+    let mut subscription_tasks = BTreeMap::<_, JoinHandle<()>>::new();
 
     loop {
         for node_info in matter_controller.nodes().await? {
@@ -34,8 +34,6 @@ pub async fn poll_values(
                 if handle.is_finished() {
                     if let Err(e) = handle.await {
                         warn!("Subscription task for node {node_id} finished with error: {e}");
-                    } else {
-                        warn!("Subscription task for node {node_id} finished without no error");
                     }
                     subscription_tasks.remove(&node_id);
                 } else {
@@ -64,7 +62,7 @@ pub async fn poll_values(
                 .await?;
             info!("Subscribed to node {}", node_id);
             // TODO: Spawn a task for this, and keep track of it somehow.
-            let join_handle = spawn(handle_subscription(
+            let join_handle = spawn(handle_subscription_log_error(
                 subscription,
                 node_info,
                 unchanging_values,
@@ -73,6 +71,22 @@ pub async fn poll_values(
             subscription_tasks.insert(node_id, join_handle);
         }
         sleep(SLEEP_BETWEEN_POLLING_NODES).await;
+    }
+}
+
+async fn handle_subscription_log_error(
+    subscription: Subscription,
+    node_info: NodeInfo,
+    unchanging_values: HashMap<AttributePath, matter_controller::Value>,
+    influxdb_client: Client,
+) {
+    let node_id = node_info.node_id;
+    if let Err(e) =
+        handle_subscription(subscription, node_info, unchanging_values, influxdb_client).await
+    {
+        warn!("Error handling subscription to node {node_id}: {e}");
+    } else {
+        warn!("Subscription task for node {node_id} finished with no error");
     }
 }
 
