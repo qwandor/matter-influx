@@ -54,7 +54,7 @@ pub async fn poll_values(
                 .collect::<HashMap<_, _>>();
             let subscription = node
                 .subscribe(
-                    &CHANGING_ATTRIBUTES,
+                    CHANGING_ATTRIBUTES,
                     &[],
                     config.minimum_interval_seconds,
                     config.maximum_interval_seconds,
